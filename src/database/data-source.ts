@@ -17,6 +17,7 @@ import { CancellationPilgrim } from '../cancellations/entities/cancellation-pilg
 import { Refund } from '../cancellations/entities/refund.entity.js';
 import { IdempotencyRecord } from '../common/entities/idempotency-record.entity.js';
 import { AuditLog } from '../common/entities/audit-log.entity.js';
+import { ReconciliationRecord } from '../reconciliation/entities/reconciliation-record.entity.js';
 
 const databaseUrl =
   process.env.DATABASE_URL ||
@@ -44,6 +45,7 @@ const AppDataSource = new DataSource({
     Refund,
     IdempotencyRecord,
     AuditLog,
+    ReconciliationRecord,
     'dist/**/*.entity.js',
   ],
   migrations: [InitialBaseline1710000000000],

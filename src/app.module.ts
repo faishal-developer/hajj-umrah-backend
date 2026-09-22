@@ -13,6 +13,7 @@ import { CancellationsModule } from './cancellations/cancellations.module.js';
 import { PackagesModule } from './packages/packages.module.js';
 import { SeatReservationModule } from './seat-reservation/seat-reservation.module.js';
 import { InstallmentsModule } from './installments/installments.module.js';
+import { ReconciliationModule } from './reconciliation/reconciliation.module.js';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { InstallmentsModule } from './installments/installments.module.js';
     InstallmentsModule,
     PaymentsModule,
     CancellationsModule,
+    ReconciliationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
