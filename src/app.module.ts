@@ -1,19 +1,28 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { DatabaseModule } from './database/database.module.js';
+import { HealthModule } from './health/health.module.js';
 
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+import { UsersModule } from './users/users.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import { BookingsModule } from './bookings/bookings.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
+import { CancellationsModule } from './cancellations/cancellations.module.js';
 
 @Module({
   imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'hajj-umrah-backend',
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
+    DatabaseModule,
+    HealthModule,
+    UsersModule,
+    AuthModule,
+    BookingsModule,
+    PaymentsModule,
+    CancellationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
