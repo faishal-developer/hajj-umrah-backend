@@ -11,6 +11,7 @@ import { BookingsModule } from './bookings/bookings.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { CancellationsModule } from './cancellations/cancellations.module.js';
 import { PackagesModule } from './packages/packages.module.js';
+import { SeatReservationModule } from './seat-reservation/seat-reservation.module.js';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PackagesModule } from './packages/packages.module.js';
     UsersModule,
     AuthModule,
     PackagesModule,
+    SeatReservationModule,
     BookingsModule,
     PaymentsModule,
     CancellationsModule,
