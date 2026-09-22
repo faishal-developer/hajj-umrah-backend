@@ -3,9 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { RefundsController } from './refunds.controller.js';
 import { CancellationsService } from './cancellations.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { User } from '../users/entities/user.entity.js';
 import { UserRole } from '../users/enums/user-role.enum.js';
 import { UserStatus } from '../users/enums/user-status.enum.js';
+import { RefundStatus } from './enums/refund-status.enum.js';
 
 describe('RefundsController', () => {
   let controller: RefundsController;
@@ -23,7 +25,20 @@ describe('RefundsController', () => {
     updatedAt: new Date(),
   };
 
+  const mockAdmin: User = {
+    id: 'admin-123',
+    name: 'Admin User',
+    email: 'admin@example.com',
+    phone: null,
+    passwordHash: 'hashed',
+    role: UserRole.ADMIN,
+    status: UserStatus.ACTIVE,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
   const mockService = {
+    processRefund: vi.fn(),
     findRefundsForUser: vi.fn(),
     findRefundByIdAndValidateOwnership: vi.fn(),
   };
@@ -40,10 +55,21 @@ describe('RefundsController', () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     controller = module.get<RefundsController>(RefundsController);
     service = module.get<CancellationsService>(CancellationsService);
+  });
+
+  it('processRefund should invoke service.processRefund', async () => {
+    const dto = { status: RefundStatus.COMPLETED, transaction_reference: 'REF-123' };
+    mockService.processRefund.mockResolvedValue({ id: 'r-1', status: RefundStatus.COMPLETED });
+
+    const result = await controller.processRefund('r-1', dto, mockAdmin);
+    expect(mockService.processRefund).toHaveBeenCalledWith('r-1', dto, mockAdmin);
+    expect(result.status).toBe(RefundStatus.COMPLETED);
   });
 
   it('getMyRefunds should derive user ID from authenticated user', async () => {

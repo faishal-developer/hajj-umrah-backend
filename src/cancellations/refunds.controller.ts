@@ -1,14 +1,20 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { UserRole } from '../users/enums/user-role.enum.js';
 import { CancellationsService } from './cancellations.service.js';
+import { ProcessRefundDto } from './dto/process-refund.dto.js';
 
 @Controller('refunds')
 @UseGuards(JwtAuthGuard)
@@ -16,6 +22,21 @@ export class RefundsController {
   constructor(
     private readonly cancellationsService: CancellationsService,
   ) {}
+
+  /**
+   * POST /refunds/:id/process
+   * Admin processes/updates a refund through its lifecycle (APPROVED -> PROCESSING -> COMPLETED or REJECTED).
+   */
+  @Post(':id/process')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async processRefund(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ProcessRefundDto,
+    @CurrentUser() currentAdmin: User,
+  ) {
+    return this.cancellationsService.processRefund(id, dto, currentAdmin);
+  }
 
   /**
    * GET /refunds/me

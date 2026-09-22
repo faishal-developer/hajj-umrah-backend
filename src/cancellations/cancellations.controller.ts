@@ -1,14 +1,20 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   ParseUUIDPipe,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { UserRole } from '../users/enums/user-role.enum.js';
 import { CancellationsService } from './cancellations.service.js';
+import { RequestCancellationDto } from './dto/request-cancellation.dto.js';
 
 @Controller('cancellations')
 @UseGuards(JwtAuthGuard)
@@ -16,6 +22,47 @@ export class CancellationsController {
   constructor(
     private readonly cancellationsService: CancellationsService,
   ) {}
+
+  /**
+   * POST /cancellations/request
+   * Requests a booking cancellation or individual pilgrim cancellation.
+   */
+  @Post('request')
+  async requestCancellation(
+    @Body() dto: RequestCancellationDto,
+    @CurrentUser() currentUser: User,
+  ) {
+    return this.cancellationsService.requestCancellation(dto, currentUser);
+  }
+
+  /**
+   * POST /cancellations/:id/approve
+   * Admin approves a cancellation request, releasing seats and approving refund.
+   */
+  @Post(':id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async approveCancellation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentAdmin: User,
+  ) {
+    return this.cancellationsService.approveCancellation(id, currentAdmin);
+  }
+
+  /**
+   * POST /cancellations/:id/reject
+   * Admin rejects a cancellation request.
+   */
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async rejectCancellation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() currentAdmin: User,
+  ) {
+    return this.cancellationsService.rejectCancellation(id, currentAdmin, reason);
+  }
 
   /**
    * GET /cancellations/me
