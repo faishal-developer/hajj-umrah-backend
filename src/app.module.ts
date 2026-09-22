@@ -14,6 +14,7 @@ import { PackagesModule } from './packages/packages.module.js';
 import { SeatReservationModule } from './seat-reservation/seat-reservation.module.js';
 import { InstallmentsModule } from './installments/installments.module.js';
 import { ReconciliationModule } from './reconciliation/reconciliation.module.js';
+import { VendorsModule } from './vendors/vendors.module.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ReconciliationModule } from './reconciliation/reconciliation.module.js'
     PaymentsModule,
     CancellationsModule,
     ReconciliationModule,
+    VendorsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

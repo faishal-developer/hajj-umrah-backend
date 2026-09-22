@@ -18,6 +18,8 @@ import { Refund } from '../cancellations/entities/refund.entity.js';
 import { IdempotencyRecord } from '../common/entities/idempotency-record.entity.js';
 import { AuditLog } from '../common/entities/audit-log.entity.js';
 import { ReconciliationRecord } from '../reconciliation/entities/reconciliation-record.entity.js';
+import { Vendor } from '../vendors/entities/vendor.entity.js';
+import { VendorExpense } from '../vendors/entities/vendor-expense.entity.js';
 
 const databaseUrl =
   process.env.DATABASE_URL ||
@@ -46,6 +48,8 @@ const AppDataSource = new DataSource({
     IdempotencyRecord,
     AuditLog,
     ReconciliationRecord,
+    Vendor,
+    VendorExpense,
     'dist/**/*.entity.js',
   ],
   migrations: [InitialBaseline1710000000000],
