@@ -1,0 +1,42 @@
+# Antigravity Engineering & Execution Rules
+
+## 1. Documentation & Knowledge Graph Source of Truth
+- The `./docs/` directory and the generated Graphify knowledge graph (`./.graphify/` or `./graphify-out/`) serve as the single authoritative source of truth.
+- Always consult the Graphify artifacts (`GRAPH_REPORT.md` / graph summaries) and relevant `./docs/` markdown files prior to implementing architecture or features.
+- In case of conflict between framework defaults and `./docs/`, `./docs/` strictly takes precedence.
+- If requirements are absent from `./docs/`, declare assumptions explicitly or ask for clarification—do not guess.
+
+## 2. Execution Time Budgets & Constraints
+- Task Execution Cap: Total execution time for any agent task or planning cycle must not exceed 30 minutes. If an operation risks exceeding this window, decompose the scope and report progress immediately.
+- Test Execution Cap: Automated test suites, test generation, and test execution must finish within 10 minutes. Optimize test runs by:
+  - Mocking slow external network calls and I/O where appropriate.
+  - Scoping runs to affected test suites/files rather than running unbounded end-to-end suites repeatedly.
+  - Ensuring database teardown/cleanup executes cleanly without hanging connection pools.
+
+## 3. Technology Stack & Persistence
+- Runtime/Language: TypeScript / Node.js
+- Database: PostgreSQL
+- ORM: TypeORM
+  - Use strongly typed entities, custom repositories/data sources, and explicit indices.
+  - Prefer TypeORM query builders or repository APIs over raw SQL strings.
+  - Manage schema mutations strictly via TypeORM migrations (`synchronize: false`).
+
+## 4. Engineering Standards & Code Quality
+- Senior Engineer Mindset: Produce production-ready, readable, clean, and self-documenting code.
+- Human-Readable: Use descriptive names (e.g., `calculateMonthlyBillingCycle()`), clear vertical structure, and sensible file organization. Avoid opaque one-liners and cryptic abbreviations.
+- Pragmatic SOLID:
+  - Single Responsibility: Keep services and controllers focused on a single domain task.
+  - Open/Closed & Dependency Inversion: Inject abstractions for interchangeable components (e.g., mailers, gateways).
+- Pragmatic DRY, KISS, and YAGNI:
+  - Apply DRY, but avoid premature abstractions—a small amount of duplication is better than the wrong abstraction.
+  - Keep logic direct and simple (KISS); do not hide control flow inside complex meta-programming wrappers.
+  - Build only what is currently required (YAGNI). Omit unrequested speculative extension hooks.
+
+## 5. Seeding & Initial Data
+- Static Source: Seed data must be defined in a static file: `./src/database/seeds/seed.data.ts` (or `.json`).
+- Required Records: The static seed file must include at least:
+  1. Standard User: Role `USER`, default permissions, active status.
+  2. Administrative User: Role `ADMIN`, elevated operational permissions, active status.
+- Seeder Behavior:
+  - Store pre-hashed passwords or run them through a secure hasher (`argon2` or `bcrypt`) during execution.
+  - Implement idempotent insertions (e.g., check existing records by email before insert, or use upsert) so re-runs never duplicate or fail.
