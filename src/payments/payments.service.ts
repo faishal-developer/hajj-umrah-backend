@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import {
   GatewayEventStatus,
   PaymentGatewayEvent,
 } from './entities/payment-gateway-event.entity.js';
+import { AuditLog } from '../common/entities/audit-log.entity.js';
 import { PaymentStatus } from './enums/payment-status.enum.js';
 import { Booking } from '../bookings/entities/booking.entity.js';
 import { BookingStatus } from '../bookings/enums/booking-status.enum.js';
@@ -36,6 +38,8 @@ export class PaymentsService {
     private readonly allocationsRepository: Repository<PaymentAllocation>,
     @InjectRepository(PaymentGatewayEvent)
     private readonly gatewayEventsRepository: Repository<PaymentGatewayEvent>,
+    @InjectRepository(AuditLog)
+    private readonly auditLogsRepository: Repository<AuditLog>,
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
     private readonly bookingsService: BookingsService,
@@ -146,7 +150,6 @@ export class PaymentsService {
       targetPayment.status === PaymentStatus.SUCCESS &&
       dto.status !== PaymentStatus.SUCCESS
     ) {
-      // Record ignored/failed event
       const ignoredEvent = this.gatewayEventsRepository.create({
         provider: normalizedProvider,
         eventId,
@@ -238,7 +241,6 @@ export class PaymentsService {
 
       if (booking && booking.status !== BookingStatus.CANCELLED) {
         if (booking.paymentMode === PaymentMode.INSTALLMENT) {
-          // Allocate payment to installments (oldest unpaid first)
           await this.installmentsService.allocatePayment(
             booking.id,
             savedPayment.id,
@@ -246,16 +248,14 @@ export class PaymentsService {
             manager,
           );
         } else {
-          // Full payment
           booking.status = BookingStatus.CONFIRMED;
           await bookingRepo.save(booking);
         }
 
-        // Transition held seats to confirmed
         try {
           await this.seatReservationService.confirmSeats(booking.id, manager);
         } catch {
-          // If already confirmed or released, continue safely
+          // Continue safely
         }
       }
 
@@ -307,6 +307,162 @@ export class PaymentsService {
     });
 
     return this.paymentsRepository.save(payment);
+  }
+
+  /**
+   * Approves a recorded manual / branch payment with Maker-Checker rule enforcement.
+   * Rule: recorded_by != approved_by (creator cannot approve their own recorded payment).
+   * Creates an audit log record for the approval.
+   */
+  async approveManualPayment(
+    paymentId: string,
+    currentAdmin: User,
+  ): Promise<Payment> {
+    const payment = await this.paymentsRepository.findOne({
+      where: { id: paymentId },
+      relations: ['booking'],
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment with ID "${paymentId}" not found`);
+    }
+
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException(
+        `Payment cannot be approved because status is "${payment.status}" (must be PENDING)`,
+      );
+    }
+
+    // Maker-Checker enforcement: recorded_by != approved_by
+    if (payment.createdBy && payment.createdBy === currentAdmin.id) {
+      throw new ForbiddenException(
+        'Maker-checker violation: The user who recorded the payment cannot approve it (recorded_by != approved_by)',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager: EntityManager) => {
+      const paymentRepo = manager.getRepository(Payment);
+      const bookingRepo = manager.getRepository(Booking);
+      const auditRepo = manager.getRepository(AuditLog);
+
+      const lockedPayment = await paymentRepo.findOne({
+        where: { id: payment.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!lockedPayment) {
+        throw new NotFoundException(`Payment with ID "${payment.id}" not found`);
+      }
+
+      if (lockedPayment.status !== PaymentStatus.PENDING) {
+        throw new BadRequestException('Payment is no longer pending approval');
+      }
+
+      const oldStatus = lockedPayment.status;
+      lockedPayment.status = PaymentStatus.SUCCESS;
+      lockedPayment.approvedBy = currentAdmin.id;
+      const savedPayment = await paymentRepo.save(lockedPayment);
+
+      // Create Audit Log Record
+      const auditLog = auditRepo.create({
+        actorId: currentAdmin.id,
+        action: 'PAYMENT_APPROVED',
+        entityType: 'Payment',
+        entityId: savedPayment.id,
+        oldValue: { status: oldStatus, approvedBy: null },
+        newValue: { status: PaymentStatus.SUCCESS, approvedBy: currentAdmin.id },
+      });
+      await auditRepo.save(auditLog);
+
+      const booking = await bookingRepo.findOne({
+        where: { id: savedPayment.bookingId },
+      });
+
+      if (booking && booking.status !== BookingStatus.CANCELLED) {
+        if (booking.paymentMode === PaymentMode.INSTALLMENT) {
+          await this.installmentsService.allocatePayment(
+            booking.id,
+            savedPayment.id,
+            savedPayment.amount,
+            manager,
+          );
+        } else {
+          booking.status = BookingStatus.CONFIRMED;
+          await bookingRepo.save(booking);
+        }
+
+        try {
+          await this.seatReservationService.confirmSeats(booking.id, manager);
+        } catch {
+          // Continue safely
+        }
+      }
+
+      return savedPayment;
+    });
+  }
+
+  /**
+   * Rejects a recorded manual payment with Maker-Checker rule enforcement.
+   * Creates an audit log record for the rejection.
+   */
+  async rejectManualPayment(
+    paymentId: string,
+    currentAdmin: User,
+    reason?: string,
+  ): Promise<Payment> {
+    const payment = await this.paymentsRepository.findOne({
+      where: { id: paymentId },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment with ID "${paymentId}" not found`);
+    }
+
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException(
+        `Payment cannot be rejected because status is "${payment.status}" (must be PENDING)`,
+      );
+    }
+
+    // Maker-Checker enforcement: recorded_by != approved_by
+    if (payment.createdBy && payment.createdBy === currentAdmin.id) {
+      throw new ForbiddenException(
+        'Maker-checker violation: The user who recorded the payment cannot reject it (recorded_by != approved_by)',
+      );
+    }
+
+    return this.dataSource.transaction(async (manager: EntityManager) => {
+      const paymentRepo = manager.getRepository(Payment);
+      const auditRepo = manager.getRepository(AuditLog);
+
+      const lockedPayment = await paymentRepo.findOne({
+        where: { id: payment.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!lockedPayment) {
+        throw new NotFoundException(`Payment with ID "${payment.id}" not found`);
+      }
+
+      const oldStatus = lockedPayment.status;
+      lockedPayment.status = PaymentStatus.FAILED;
+      lockedPayment.approvedBy = currentAdmin.id;
+      const savedPayment = await paymentRepo.save(lockedPayment);
+
+      // Create Audit Log Record
+      const auditLog = auditRepo.create({
+        actorId: currentAdmin.id,
+        action: 'PAYMENT_REJECTED',
+        entityType: 'Payment',
+        entityId: savedPayment.id,
+        oldValue: { status: oldStatus, approvedBy: null },
+        newValue: { status: PaymentStatus.FAILED, approvedBy: currentAdmin.id, reason },
+      });
+      await auditRepo.save(auditLog);
+
+      return savedPayment;
+    });
   }
 
   /**

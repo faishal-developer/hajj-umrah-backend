@@ -5,6 +5,7 @@ import { Payment } from './entities/payment.entity.js';
 import { Installment } from './entities/installment.entity.js';
 import { PaymentAllocation } from './entities/payment-allocation.entity.js';
 import { PaymentGatewayEvent } from './entities/payment-gateway-event.entity.js';
+import { AuditLog } from '../common/entities/audit-log.entity.js';
 import { Booking } from '../bookings/entities/booking.entity.js';
 import { PaymentsService } from './payments.service.js';
 import { PaymentsController } from './payments.controller.js';
@@ -20,6 +21,7 @@ import { SeatReservationModule } from '../seat-reservation/seat-reservation.modu
       Installment,
       PaymentAllocation,
       PaymentGatewayEvent,
+      AuditLog,
       Booking,
     ]),
     BookingsModule,

@@ -10,8 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
+import { UserRole } from '../users/enums/user-role.enum.js';
 import { PaymentsService } from './payments.service.js';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto.js';
 import { GatewayWebhookDto } from './dto/gateway-webhook.dto.js';
@@ -37,7 +40,6 @@ export class PaymentsController {
   /**
    * POST /payments/webhook/:provider
    * Gateway webhook callback for verified server-to-server transaction status notifications.
-   * Public endpoint (verified via gateway signatures / secret payload).
    */
   @Post('webhook/:provider')
   @HttpCode(HttpStatus.OK)
@@ -53,12 +55,42 @@ export class PaymentsController {
    * Records a manual / branch payment request.
    */
   @Post('manual')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.AGENT)
   async recordManualPayment(
     @Body() dto: RecordManualPaymentDto,
     @CurrentUser() currentUser: User,
   ) {
     return this.paymentsService.recordManualPayment(dto, currentUser);
+  }
+
+  /**
+   * POST /payments/:id/approve
+   * Admin approves manual payment with Maker-Checker verification (recorded_by != approved_by).
+   */
+  @Post(':id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async approvePayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentAdmin: User,
+  ) {
+    return this.paymentsService.approveManualPayment(id, currentAdmin);
+  }
+
+  /**
+   * POST /payments/:id/reject
+   * Admin rejects manual payment with Maker-Checker verification.
+   */
+  @Post(':id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async rejectPayment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() currentAdmin: User,
+  ) {
+    return this.paymentsService.rejectManualPayment(id, currentAdmin, reason);
   }
 
   /**
