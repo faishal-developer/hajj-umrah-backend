@@ -20,6 +20,8 @@ import { AuditLog } from '../common/entities/audit-log.entity.js';
 import { ReconciliationRecord } from '../reconciliation/entities/reconciliation-record.entity.js';
 import { Vendor } from '../vendors/entities/vendor.entity.js';
 import { VendorExpense } from '../vendors/entities/vendor-expense.entity.js';
+import { InventoryItem } from '../inventory/entities/inventory-item.entity.js';
+import { InventoryTransaction } from '../inventory/entities/inventory-transaction.entity.js';
 
 const databaseUrl =
   process.env.DATABASE_URL ||
@@ -50,6 +52,8 @@ const AppDataSource = new DataSource({
     ReconciliationRecord,
     Vendor,
     VendorExpense,
+    InventoryItem,
+    InventoryTransaction,
     'dist/**/*.entity.js',
   ],
   migrations: [InitialBaseline1710000000000],

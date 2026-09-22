@@ -15,6 +15,7 @@ import { SeatReservationModule } from './seat-reservation/seat-reservation.modul
 import { InstallmentsModule } from './installments/installments.module.js';
 import { ReconciliationModule } from './reconciliation/reconciliation.module.js';
 import { VendorsModule } from './vendors/vendors.module.js';
+import { InventoryModule } from './inventory/inventory.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { VendorsModule } from './vendors/vendors.module.js';
     CancellationsModule,
     ReconciliationModule,
     VendorsModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
