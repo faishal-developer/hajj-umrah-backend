@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -12,6 +13,9 @@ import { PaymentStatus } from '../enums/payment-status.enum.js';
 import { PaymentAllocation } from './payment-allocation.entity.js';
 
 @Entity('payments')
+@Index('idx_payment_provider_gateway_trx', ['provider', 'gatewayTransactionId'], {
+  unique: true,
+})
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -11,6 +11,7 @@ import { SeatReservation } from '../bookings/entities/seat-reservation.entity.js
 import { Payment } from '../payments/entities/payment.entity.js';
 import { Installment } from '../payments/entities/installment.entity.js';
 import { PaymentAllocation } from '../payments/entities/payment-allocation.entity.js';
+import { PaymentGatewayEvent } from '../payments/entities/payment-gateway-event.entity.js';
 import { Cancellation } from '../cancellations/entities/cancellation.entity.js';
 import { CancellationPilgrim } from '../cancellations/entities/cancellation-pilgrim.entity.js';
 import { Refund } from '../cancellations/entities/refund.entity.js';
@@ -36,6 +37,7 @@ const AppDataSource = new DataSource({
     Payment,
     Installment,
     PaymentAllocation,
+    PaymentGatewayEvent,
     Cancellation,
     CancellationPilgrim,
     Refund,

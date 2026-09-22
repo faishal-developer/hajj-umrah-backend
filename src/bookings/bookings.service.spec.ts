@@ -15,6 +15,7 @@ import { PackageTier } from '../packages/entities/package-tier.entity.js';
 import { PackageStatus } from '../packages/enums/package-status.enum.js';
 import { SeatReservationService } from '../seat-reservation/seat-reservation.service.js';
 import { IdempotencyService } from '../common/services/idempotency.service.js';
+import { InstallmentsService } from '../installments/installments.service.js';
 
 describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', () => {
   let service: BookingsService;
@@ -121,6 +122,10 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       saveResponse: vi.fn().mockResolvedValue({ id: 'idem-id' }),
     };
 
+    const mockInstallmentsService = {
+      generateSchedule: vi.fn().mockResolvedValue([]),
+    };
+
     mockEntityManager = {
       findOne: vi.fn(),
       create: vi.fn().mockImplementation((_entityClass, dto) => ({ ...dto, id: 'saved-id' })),
@@ -149,6 +154,10 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
         {
           provide: IdempotencyService,
           useValue: mockIdempotencyService,
+        },
+        {
+          provide: InstallmentsService,
+          useValue: mockInstallmentsService,
         },
         {
           provide: DataSource,

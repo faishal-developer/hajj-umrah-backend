@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { Booking } from './entities/booking.entity.js';
@@ -9,6 +9,7 @@ import { BookingsService } from './bookings.service.js';
 import { BookingsController } from './bookings.controller.js';
 import { SeatReservationModule } from '../seat-reservation/seat-reservation.module.js';
 import { IdempotencyService } from '../common/services/idempotency.service.js';
+import { InstallmentsModule } from '../installments/installments.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { IdempotencyService } from '../common/services/idempotency.service.js';
       IdempotencyRecord,
     ]),
     SeatReservationModule,
+    forwardRef(() => InstallmentsModule),
   ],
   controllers: [BookingsController],
   providers: [BookingsService, IdempotencyService],

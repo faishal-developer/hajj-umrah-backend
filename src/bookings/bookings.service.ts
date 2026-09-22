@@ -9,6 +9,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity.js';
 import { BookingPilgrim } from './entities/booking-pilgrim.entity.js';
 import { BookingStatus } from './enums/booking-status.enum.js';
+import { PaymentMode } from './enums/payment-mode.enum.js';
 import { User } from '../users/entities/user.entity.js';
 import { PackageTier } from '../packages/entities/package-tier.entity.js';
 import { PackageStatus } from '../packages/enums/package-status.enum.js';
@@ -16,6 +17,7 @@ import { SeatReservationService } from '../seat-reservation/seat-reservation.ser
 import { IdempotencyService } from '../common/services/idempotency.service.js';
 import { OwnershipValidator } from '../common/utils/ownership.util.js';
 import { CreateBookingDto } from './dto/create-booking.dto.js';
+import { InstallmentsService } from '../installments/installments.service.js';
 
 @Injectable()
 export class BookingsService {
@@ -27,6 +29,7 @@ export class BookingsService {
     private readonly seatReservationService: SeatReservationService,
     private readonly idempotencyService: IdempotencyService,
     private readonly dataSource: DataSource,
+    private readonly installmentsService?: InstallmentsService,
   ) {}
 
   /**
@@ -112,7 +115,18 @@ export class BookingsService {
         manager,
       );
 
-      // 7. Store idempotency record
+      // 7. If payment mode is INSTALLMENT, generate installment schedule
+      if (dto.payment_mode === PaymentMode.INSTALLMENT && this.installmentsService) {
+        await this.installmentsService.generateSchedule(
+          savedBooking.id,
+          totalAmount,
+          tier.package.departureDate,
+          3,
+          manager,
+        );
+      }
+
+      // 8. Store idempotency record
       if (idempotencyKey) {
         await this.idempotencyService.saveResponse(
           '/bookings',
