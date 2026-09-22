@@ -16,6 +16,8 @@ import { InstallmentsModule } from './installments/installments.module.js';
 import { ReconciliationModule } from './reconciliation/reconciliation.module.js';
 import { VendorsModule } from './vendors/vendors.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -35,6 +37,8 @@ import { InventoryModule } from './inventory/inventory.module.js';
     ReconciliationModule,
     VendorsModule,
     InventoryModule,
+    AuditModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
