@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { CancellationsModule } from './cancellations/cancellations.module.js';
+import { PackagesModule } from './packages/packages.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CancellationsModule } from './cancellations/cancellations.module.js';
     HealthModule,
     UsersModule,
     AuthModule,
+    PackagesModule,
     BookingsModule,
     PaymentsModule,
     CancellationsModule,

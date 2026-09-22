@@ -3,6 +3,8 @@ import 'dotenv/config';
 import { InitialBaseline1710000000000 } from './migrations/1710000000000-InitialBaseline.js';
 
 import { User } from '../users/entities/user.entity.js';
+import { Package } from '../packages/entities/package.entity.js';
+import { PackageTier } from '../packages/entities/package-tier.entity.js';
 import { Booking } from '../bookings/entities/booking.entity.js';
 import { BookingPilgrim } from '../bookings/entities/booking-pilgrim.entity.js';
 import { SeatReservation } from '../bookings/entities/seat-reservation.entity.js';
@@ -25,6 +27,8 @@ const AppDataSource = new DataSource({
     : false,
   entities: [
     User,
+    Package,
+    PackageTier,
     Booking,
     BookingPilgrim,
     SeatReservation,
