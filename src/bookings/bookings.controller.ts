@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Post,
@@ -11,12 +12,31 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { User } from '../users/entities/user.entity.js';
 import { BookingsService } from './bookings.service.js';
+import { CreateBookingDto } from './dto/create-booking.dto.js';
 import { CancelBookingDto } from './dto/cancel-booking.dto.js';
+import { CancelPilgrimDto } from './dto/cancel-pilgrim.dto.js';
 
 @Controller('bookings')
 @UseGuards(JwtAuthGuard)
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
+
+  /**
+   * POST /bookings
+   * Creates a new group booking with immutable price snapshotting and idempotency support.
+   */
+  @Post()
+  async createBooking(
+    @CurrentUser() currentUser: User,
+    @Body() createDto: CreateBookingDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    return this.bookingsService.createBooking(
+      currentUser.id,
+      createDto,
+      idempotencyKey,
+    );
+  }
 
   /**
    * GET /bookings/me
@@ -50,7 +70,7 @@ export class BookingsController {
 
   /**
    * POST /bookings/:id/cancel
-   * Cancels a booking if the authenticated user is the owner, or if ADMIN.
+   * Cancels an entire booking.
    */
   @Post(':id/cancel')
   async cancelBooking(
@@ -62,6 +82,24 @@ export class BookingsController {
       id,
       currentUser,
       cancelDto?.reason,
+    );
+  }
+
+  /**
+   * POST /bookings/:bookingId/pilgrims/:pilgrimId/cancel
+   * Cancels an individual pilgrim (partial group cancellation).
+   */
+  @Post(':bookingId/pilgrims/:pilgrimId/cancel')
+  async cancelPilgrim(
+    @Param('bookingId', ParseUUIDPipe) bookingId: string,
+    @Param('pilgrimId', ParseUUIDPipe) pilgrimId: string,
+    @CurrentUser() currentUser: User,
+    @Body() _cancelDto?: CancelPilgrimDto,
+  ) {
+    return this.bookingsService.cancelPilgrim(
+      bookingId,
+      pilgrimId,
+      currentUser,
     );
   }
 }

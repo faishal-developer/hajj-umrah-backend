@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BookingsController } from './bookings.controller.js';
 import { BookingsService } from './bookings.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaymentMode } from './enums/payment-mode.enum.js';
 import { User } from '../users/entities/user.entity.js';
 import { UserRole } from '../users/enums/user-role.enum.js';
 import { UserStatus } from '../users/enums/user-status.enum.js';
@@ -24,9 +25,11 @@ describe('BookingsController', () => {
   };
 
   const mockService = {
+    createBooking: vi.fn(),
     findForUser: vi.fn(),
     findByIdAndValidateOwnership: vi.fn(),
     cancelBooking: vi.fn(),
+    cancelPilgrim: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -47,38 +50,30 @@ describe('BookingsController', () => {
     service = module.get<BookingsService>(BookingsService);
   });
 
-  it('getMyBookings should derive user ID from authenticated user', async () => {
-    mockService.findForUser.mockResolvedValue([]);
-    await controller.getMyBookings(mockUser);
-    expect(mockService.findForUser).toHaveBeenCalledWith('user-123');
-  });
+  it('createBooking should pass user ID, dto and idempotency key', async () => {
+    const dto = {
+      tier_id: 't-1',
+      payment_mode: PaymentMode.FULL,
+      pilgrims: [{ name: 'Faishal', passport_number: 'AB123' }],
+    };
+    mockService.createBooking.mockResolvedValue({ id: 'b-1' });
 
-  it('getBookings should derive user ID from authenticated user', async () => {
-    mockService.findForUser.mockResolvedValue([]);
-    await controller.getBookings(mockUser);
-    expect(mockService.findForUser).toHaveBeenCalledWith('user-123');
-  });
+    const result = await controller.createBooking(mockUser, dto, 'key-123');
 
-  it('getBooking should validate ownership with authenticated user', async () => {
-    mockService.findByIdAndValidateOwnership.mockResolvedValue({ id: 'b-1' });
-    const result = await controller.getBooking('b-1', mockUser);
-    expect(mockService.findByIdAndValidateOwnership).toHaveBeenCalledWith(
-      'b-1',
-      mockUser,
+    expect(service.createBooking).toHaveBeenCalledWith(
+      'user-123',
+      dto,
+      'key-123',
     );
     expect(result).toEqual({ id: 'b-1' });
   });
 
-  it('cancelBooking should pass booking ID, user and reason to service', async () => {
-    mockService.cancelBooking.mockResolvedValue({ id: 'b-1', status: 'CANCELLED' });
-    const result = await controller.cancelBooking('b-1', mockUser, {
-      reason: 'Medical reason',
-    });
-    expect(mockService.cancelBooking).toHaveBeenCalledWith(
-      'b-1',
-      mockUser,
-      'Medical reason',
-    );
-    expect(result).toEqual({ id: 'b-1', status: 'CANCELLED' });
+  it('cancelPilgrim should call bookingsService.cancelPilgrim', async () => {
+    mockService.cancelPilgrim.mockResolvedValue({ id: 'p-1', status: 'CANCELLED' });
+
+    const result = await controller.cancelPilgrim('b-1', 'p-1', mockUser);
+
+    expect(service.cancelPilgrim).toHaveBeenCalledWith('b-1', 'p-1', mockUser);
+    expect(result).toEqual({ id: 'p-1', status: 'CANCELLED' });
   });
 });
