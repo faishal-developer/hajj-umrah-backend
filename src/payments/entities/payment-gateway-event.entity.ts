@@ -37,6 +37,7 @@ export class PaymentGatewayEvent {
   @Column({
     type: 'enum',
     enum: GatewayEventStatus,
+    enumName: 'payment_gateway_events_status_enum',
     default: GatewayEventStatus.PROCESSED,
   })
   status: GatewayEventStatus;
