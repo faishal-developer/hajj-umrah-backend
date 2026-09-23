@@ -39,6 +39,16 @@ export class BookingsService {
     dto: CreateBookingDto,
     idempotencyKey?: string,
   ): Promise<Booking> {
+    const tierId = dto.tierId || dto.tier_id;
+    const paymentMode = dto.paymentMode || dto.payment_mode;
+
+    if (!tierId) {
+      throw new BadRequestException('Package tier ID is required');
+    }
+    if (!paymentMode) {
+      throw new BadRequestException('Payment mode is required');
+    }
+
     // 1. Check idempotency if key provided
     if (idempotencyKey) {
       const { isDuplicate, response } = await this.idempotencyService.check(
@@ -54,12 +64,12 @@ export class BookingsService {
     return this.dataSource.transaction(async (manager: EntityManager) => {
       // 2. Load tier and parent package
       const tier = await manager.findOne(PackageTier, {
-        where: { id: dto.tier_id },
+        where: { id: tierId },
         relations: { package: true },
       });
 
       if (!tier) {
-        throw new NotFoundException(`Package tier with ID "${dto.tier_id}" not found`);
+        throw new NotFoundException(`Package tier with ID "${tierId}" not found`);
       }
 
       if (tier.package.status !== PackageStatus.PUBLISHED) {
@@ -80,7 +90,7 @@ export class BookingsService {
         packageId: tier.packageId,
         tierId: tier.id,
         status: BookingStatus.HELD,
-        paymentMode: dto.payment_mode,
+        paymentMode,
         tierNameSnapshot,
         unitPriceSnapshot,
         totalAmount,
@@ -94,11 +104,11 @@ export class BookingsService {
       const pilgrims = dto.pilgrims.map((p) =>
         manager.create(BookingPilgrim, {
           bookingId: savedBooking.id,
-          fullName: p.name,
-          passportNumber: p.passport_number,
+          fullName: p.fullName || p.full_name || p.name || '',
+          passportNumber: p.passportNumber || p.passport_number || '',
           nationality: p.nationality || null,
-          dateOfBirth: p.date_of_birth || null,
-          passportExpiry: p.passport_expiry || null,
+          dateOfBirth: p.dateOfBirth || p.date_of_birth || null,
+          passportExpiry: p.passportExpiry || p.passport_expiry || null,
           status: 'ACTIVE',
         }),
       );
@@ -115,7 +125,7 @@ export class BookingsService {
       );
 
       // 7. If payment mode is INSTALLMENT, generate installment schedule
-      if (dto.payment_mode === PaymentMode.INSTALLMENT && this.installmentsService) {
+      if (paymentMode === PaymentMode.INSTALLMENT && this.installmentsService) {
         await this.installmentsService.generateSchedule(
           savedBooking.id,
           totalAmount,

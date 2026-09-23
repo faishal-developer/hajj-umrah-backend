@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+import 'pg';
 import { INestApplication, Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';

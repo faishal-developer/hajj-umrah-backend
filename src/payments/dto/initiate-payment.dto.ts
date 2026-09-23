@@ -1,14 +1,33 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
 
 export class InitiatePaymentDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'UUID of the booking to pay for',
     example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   })
-  @IsNotEmpty()
+  @ValidateIf((o: InitiatePaymentDto) => !o.bookingId)
+  @IsNotEmpty({ message: 'booking_id or bookingId is required' })
   @IsUUID()
-  booking_id: string;
+  booking_id?: string;
+
+  @ApiPropertyOptional({
+    description: 'UUID of the booking to pay for (camelCase alias)',
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  })
+  @ValidateIf((o: InitiatePaymentDto) => !o.booking_id)
+  @IsNotEmpty({ message: 'bookingId or booking_id is required' })
+  @IsUUID()
+  bookingId?: string;
+
 
   @ApiProperty({
     description: 'Payment amount in BDT',

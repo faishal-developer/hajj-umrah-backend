@@ -56,8 +56,9 @@ export class PaymentsService {
     dto: InitiatePaymentDto,
     currentUser: User,
   ): Promise<{ payment: Payment; checkoutUrl: string; transactionSessionId: string }> {
+    const bookingId = (dto.bookingId || dto.booking_id)!;
     const booking = await this.bookingsService.findByIdAndValidateOwnership(
-      dto.booking_id,
+      bookingId,
       currentUser,
     );
 

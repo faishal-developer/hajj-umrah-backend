@@ -203,6 +203,31 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       expect(mockIdempotencyService.saveResponse).toHaveBeenCalled();
     });
 
+    it('should create group booking with camelCase payload (packageId, tierId, paymentMode, fullName, passportNumber)', async () => {
+      mockEntityManager.findOne.mockResolvedValue({ ...mockTier });
+
+      const createDto = {
+        packageId: 'ff9cec36-4876-4eda-b5d0-7ab43ed00119',
+        tierId: 'tier-vip-id',
+        paymentMode: PaymentMode.INSTALLMENT,
+        pilgrims: [
+          {
+            fullName: 'md faishal 8288',
+            passportNumber: '121212',
+            nationality: 'Bangladesh',
+          },
+        ],
+      };
+
+      const result = await service.createBooking('user-a-id', createDto as any);
+
+      expect(result.tierNameSnapshot).toBe('VIP Tier');
+      expect(result.unitPriceSnapshot).toBe(300000);
+      expect(result.totalAmount).toBe(300000);
+      expect(result.status).toBe(BookingStatus.HELD);
+      expect(result.paymentMode).toBe(PaymentMode.INSTALLMENT);
+    });
+
     it('should return cached response when duplicate request with same idempotency key arrives', async () => {
       mockIdempotencyService.check.mockResolvedValue({
         isDuplicate: true,
