@@ -131,7 +131,7 @@ export class ReconciliationService {
   ): Promise<ReconciliationRecord> {
     const record = await this.recordsRepository.findOne({
       where: { id },
-      relations: ['payment'],
+      relations: { payment: true },
     });
 
     if (!record) {
@@ -175,7 +175,7 @@ export class ReconciliationService {
 
     return this.recordsRepository.find({
       where,
-      relations: ['payment'],
+      relations: { payment: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -197,7 +197,7 @@ export class ReconciliationService {
 
     return this.recordsRepository.find({
       where,
-      relations: ['payment'],
+      relations: { payment: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -208,7 +208,7 @@ export class ReconciliationService {
   async findById(id: string): Promise<ReconciliationRecord> {
     const record = await this.recordsRepository.findOne({
       where: { id },
-      relations: ['payment'],
+      relations: { payment: true },
     });
 
     if (!record) {

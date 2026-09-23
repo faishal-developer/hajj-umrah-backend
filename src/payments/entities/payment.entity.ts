@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity.js';
 import { PaymentStatus } from '../enums/payment-status.enum.js';
@@ -23,11 +24,11 @@ export class Payment {
   @Column({ name: 'booking_id', type: 'uuid' })
   bookingId: string;
 
-  @ManyToOne(() => Booking, (booking) => booking.payments, {
+  @ManyToOne(() => Booking, {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
+  booking: Relation<Booking>;
 
   @Column({ type: 'varchar', length: 50 })
   provider: string;
@@ -68,5 +69,5 @@ export class Payment {
   @OneToMany(() => PaymentAllocation, (allocation) => allocation.payment, {
     cascade: true,
   })
-  allocations: PaymentAllocation[];
+  allocations: Relation<PaymentAllocation[]>;
 }

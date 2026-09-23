@@ -11,7 +11,6 @@ import { PaymentStatus } from './enums/payment-status.enum.js';
 
 describe('PaymentsController', () => {
   let controller: PaymentsController;
-  let service: PaymentsService;
 
   const mockUser: User = {
     id: 'user-123',
@@ -65,7 +64,6 @@ describe('PaymentsController', () => {
       .compile();
 
     controller = module.get<PaymentsController>(PaymentsController);
-    service = module.get<PaymentsService>(PaymentsService);
   });
 
   it('initiatePayment should invoke service.initiateGatewayPayment', async () => {

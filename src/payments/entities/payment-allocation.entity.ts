@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Payment } from './payment.entity.js';
 import { Installment } from './installment.entity.js';
@@ -20,14 +21,14 @@ export class PaymentAllocation {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'payment_id' })
-  payment: Payment;
+  payment: Relation<Payment>;
 
   @Column({ name: 'installment_id', type: 'uuid' })
   installmentId: string;
 
   @ManyToOne(() => Installment, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'installment_id' })
-  installment: Installment;
+  installment: Relation<Installment>;
 
   @Column({ name: 'allocated_amount', type: 'integer' })
   allocatedAmount: number;

@@ -10,7 +10,6 @@ import { UserStatus } from '../users/enums/user-status.enum.js';
 
 describe('CancellationsController', () => {
   let controller: CancellationsController;
-  let service: CancellationsService;
 
   const mockUser: User = {
     id: 'user-123',
@@ -62,7 +61,6 @@ describe('CancellationsController', () => {
       .compile();
 
     controller = module.get<CancellationsController>(CancellationsController);
-    service = module.get<CancellationsService>(CancellationsService);
   });
 
   it('requestCancellation should invoke service.requestCancellation', async () => {

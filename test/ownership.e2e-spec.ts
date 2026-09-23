@@ -16,6 +16,7 @@ import { Cancellation } from '../src/cancellations/entities/cancellation.entity.
 import { Refund } from '../src/cancellations/entities/refund.entity.js';
 import { RefundStatus } from '../src/cancellations/enums/refund-status.enum.js';
 import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter.js';
+import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
 import bcrypt from 'bcryptjs';
 
 describe('B03 — User and Permission Foundation: Ownership Rules (e2e)', () => {
@@ -27,14 +28,14 @@ describe('B03 — User and Permission Foundation: Ownership Rules (e2e)', () => 
   const cancellationsStore = new Map<string, Cancellation>();
   const refundsStore = new Map<string, Refund>();
 
-  const userAId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-  const userBId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
-  const adminId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+  const userAId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const userBId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const adminId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
-  const bookingAId = '11111111-1111-1111-1111-111111111111';
-  const paymentAId = '22222222-2222-2222-2222-222222222222';
-  const cancellationAId = '33333333-3333-3333-3333-333333333333';
-  const refundAId = '44444444-4444-4444-4444-444444444444';
+  const bookingAId = '11111111-1111-4111-8111-111111111111';
+  const paymentAId = '22222222-2222-4222-8222-222222222222';
+  const cancellationAId = '33333333-3333-4333-8333-333333333333';
+  const refundAId = '44444444-4444-4444-8444-444444444444';
 
   let tokenUserA = '';
   let tokenUserB = '';
@@ -96,6 +97,7 @@ describe('B03 — User and Permission Foundation: Ownership Rules (e2e)', () => 
       return null;
     },
     createQueryBuilder: () => ({
+      userIdParam: '',
       innerJoinAndSelect: function () {
         return this;
       },
@@ -130,6 +132,7 @@ describe('B03 — User and Permission Foundation: Ownership Rules (e2e)', () => 
       return null;
     },
     createQueryBuilder: () => ({
+      userIdParam: '',
       innerJoinAndSelect: function () {
         return this;
       },
@@ -164,6 +167,7 @@ describe('B03 — User and Permission Foundation: Ownership Rules (e2e)', () => 
       return null;
     },
     createQueryBuilder: () => ({
+      userIdParam: '',
       innerJoinAndSelect: function () {
         return this;
       },

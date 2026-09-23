@@ -136,7 +136,7 @@ export class PaymentsService {
     // 2. Find the target payment record
     const targetPayment = await this.paymentsRepository.findOne({
       where: { id: dto.payment_id },
-      relations: ['booking'],
+      relations: { booking: true },
     });
 
     if (!targetPayment) {
@@ -320,7 +320,7 @@ export class PaymentsService {
   ): Promise<Payment> {
     const payment = await this.paymentsRepository.findOne({
       where: { id: paymentId },
-      relations: ['booking'],
+      relations: { booking: true },
     });
 
     if (!payment) {
@@ -489,7 +489,7 @@ export class PaymentsService {
 
     return this.paymentsRepository.find({
       where: { bookingId },
-      relations: ['allocations'],
+      relations: { allocations: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -503,7 +503,7 @@ export class PaymentsService {
   ): Promise<Payment> {
     const payment = await this.paymentsRepository.findOne({
       where: { id: paymentId },
-      relations: ['booking', 'allocations'],
+      relations: { booking: true, allocations: true },
     });
 
     if (!payment) {

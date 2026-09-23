@@ -187,7 +187,7 @@ export class InventoryService {
   async findItemById(id: string): Promise<InventoryItem> {
     const item = await this.itemsRepository.findOne({
       where: { id },
-      relations: ['transactions'],
+      relations: { transactions: true },
     });
 
     if (!item) {
@@ -212,7 +212,7 @@ export class InventoryService {
 
     return this.transactionsRepository.find({
       where,
-      relations: ['item'],
+      relations: { item: true },
       order: { createdAt: 'DESC' },
     });
   }

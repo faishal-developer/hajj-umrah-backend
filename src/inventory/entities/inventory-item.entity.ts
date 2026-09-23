@@ -5,6 +5,7 @@ import {
   Index,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
@@ -41,5 +42,5 @@ export class InventoryItem {
   updatedAt: Date;
 
   @OneToMany(() => InventoryTransaction, (t) => t.item, { cascade: true })
-  transactions: InventoryTransaction[];
+  transactions: Relation<InventoryTransaction[]>;
 }

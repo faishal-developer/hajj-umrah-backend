@@ -81,7 +81,7 @@ export class VendorsService {
   async findVendorById(id: string): Promise<Vendor> {
     const vendor = await this.vendorsRepository.findOne({
       where: { id },
-      relations: ['expenses'],
+      relations: { expenses: true },
     });
 
     if (!vendor) {
@@ -160,7 +160,7 @@ export class VendorsService {
 
     return this.expensesRepository.find({
       where,
-      relations: ['vendor', 'package'],
+      relations: { vendor: true, package: true },
       order: { paymentDate: 'DESC', createdAt: 'DESC' },
     });
   }

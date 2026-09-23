@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PassportModule } from '@nestjs/passport';
 import { Booking } from '../bookings/entities/booking.entity.js';
 import { Payment } from '../payments/entities/payment.entity.js';
 import { Installment } from '../payments/entities/installment.entity.js';
@@ -10,6 +11,7 @@ import { ReportsController } from './reports.controller.js';
 
 @Module({
   imports: [
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     TypeOrmModule.forFeature([
       Booking,
       Payment,

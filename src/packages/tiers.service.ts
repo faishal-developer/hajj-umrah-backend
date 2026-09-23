@@ -37,7 +37,7 @@ export class TiersService {
   async findById(id: string): Promise<PackageTier> {
     const tier = await this.tiersRepository.findOne({
       where: { id },
-      relations: ['package'],
+      relations: { package: true },
     });
 
     if (!tier) {

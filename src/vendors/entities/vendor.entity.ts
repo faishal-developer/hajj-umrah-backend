@@ -4,6 +4,7 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
 } from 'typeorm';
 import { VendorExpense } from './vendor-expense.entity.js';
@@ -41,5 +42,5 @@ export class Vendor {
   updatedAt: Date;
 
   @OneToMany(() => VendorExpense, (expense) => expense.vendor, { cascade: true })
-  expenses: VendorExpense[];
+  expenses: Relation<VendorExpense[]>;
 }

@@ -6,6 +6,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity.js';
 import { CancellationPilgrim } from './cancellation-pilgrim.entity.js';
@@ -20,7 +21,7 @@ export class Cancellation {
 
   @ManyToOne(() => Booking, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
+  booking: Relation<Booking>;
 
   @Column({ type: 'text', nullable: true })
   reason: string | null;
@@ -39,5 +40,5 @@ export class Cancellation {
     (cancellationPilgrim) => cancellationPilgrim.cancellation,
     { cascade: true },
   )
-  pilgrims: CancellationPilgrim[];
+  pilgrims: Relation<CancellationPilgrim[]>;
 }

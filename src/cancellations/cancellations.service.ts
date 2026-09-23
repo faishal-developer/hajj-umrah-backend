@@ -137,7 +137,7 @@ export class CancellationsService {
   ): Promise<{ message: string; cancellation: Cancellation }> {
     const cancellation = await this.cancellationsRepository.findOne({
       where: { id: cancellationId },
-      relations: ['pilgrims', 'booking'],
+      relations: { pilgrims: true, booking: true },
     });
 
     if (!cancellation) {
@@ -336,7 +336,7 @@ export class CancellationsService {
 
     return this.cancellationsRepository.find({
       where: { bookingId },
-      relations: ['pilgrims'],
+      relations: { pilgrims: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -350,7 +350,7 @@ export class CancellationsService {
   ): Promise<Cancellation> {
     const cancellation = await this.cancellationsRepository.findOne({
       where: { id: cancellationId },
-      relations: ['booking', 'pilgrims'],
+      relations: { booking: true, pilgrims: true },
     });
 
     if (!cancellation) {
@@ -389,7 +389,7 @@ export class CancellationsService {
   ): Promise<Refund> {
     const refund = await this.refundsRepository.findOne({
       where: { id: refundId },
-      relations: ['booking'],
+      relations: { booking: true },
     });
 
     if (!refund) {

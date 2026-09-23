@@ -10,7 +10,6 @@ import { UserStatus } from '../users/enums/user-status.enum.js';
 
 describe('VendorsController', () => {
   let controller: VendorsController;
-  let service: VendorsService;
 
   const mockAdmin: User = {
     id: 'admin-123',
@@ -50,7 +49,6 @@ describe('VendorsController', () => {
       .compile();
 
     controller = module.get<VendorsController>(VendorsController);
-    service = module.get<VendorsService>(VendorsService);
   });
 
   it('createVendor should invoke service.createVendor', async () => {

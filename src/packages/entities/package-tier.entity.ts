@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
   VersionColumn,
 } from 'typeorm';
 import { Package } from './package.entity.js';
@@ -21,7 +22,7 @@ export class PackageTier {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'package_id' })
-  package: Package;
+  package: Relation<Package>;
 
   @Column({ type: 'varchar', length: 50 })
   name: string;

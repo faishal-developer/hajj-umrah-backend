@@ -72,24 +72,24 @@ describe('CancellationsService', () => {
   const mockPilgrim1: BookingPilgrim = {
     id: 'pilgrim-1-id',
     bookingId: 'booking-a-id',
-    name: 'Pilgrim 1',
+    fullName: 'Pilgrim 1',
     passportNumber: 'A12345678',
     nationality: 'BD',
     dateOfBirth: '1985-05-15',
-    isCancelled: false,
-    createdAt: new Date(),
+    passportExpiry: '2030-05-15',
+    status: 'ACTIVE',
     booking: null as any,
   };
 
   const mockPilgrim2: BookingPilgrim = {
     id: 'pilgrim-2-id',
     bookingId: 'booking-a-id',
-    name: 'Pilgrim 2',
+    fullName: 'Pilgrim 2',
     passportNumber: 'B87654321',
     nationality: 'BD',
     dateOfBirth: '1990-08-20',
-    isCancelled: false,
-    createdAt: new Date(),
+    passportExpiry: '2030-08-20',
+    status: 'ACTIVE',
     booking: null as any,
   };
 

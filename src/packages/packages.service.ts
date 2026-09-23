@@ -65,7 +65,7 @@ export class PackagesService {
   async findById(id: string, publishedOnly = false): Promise<Package> {
     const pkg = await this.packagesRepository.findOne({
       where: { id },
-      relations: ['tiers'],
+      relations: { tiers: true },
     });
 
     if (!pkg) {

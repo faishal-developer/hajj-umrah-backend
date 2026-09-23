@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { PaymentsService } from './payments.service.js';
 import { Payment } from './entities/payment.entity.js';
@@ -38,18 +38,6 @@ describe('PaymentsService', () => {
     id: 'user-a-id',
     name: 'User A',
     email: 'userA@example.com',
-    phone: null,
-    passwordHash: 'hashed',
-    role: UserRole.USER,
-    status: UserStatus.ACTIVE,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockUserB: User = {
-    id: 'user-b-id',
-    name: 'User B',
-    email: 'userB@example.com',
     phone: null,
     passwordHash: 'hashed',
     role: UserRole.USER,
@@ -316,7 +304,7 @@ describe('PaymentsService', () => {
       };
 
       mockGatewayEventsRepository.findOne.mockResolvedValue(null);
-      mockPaymentsRepository.findOne.mockImplementation(({ where }) => {
+      mockPaymentsRepository.findOne.mockImplementation(({ where }: any) => {
         if (where.id) return Promise.resolve({ ...pendingPayment });
         return Promise.resolve(null);
       });

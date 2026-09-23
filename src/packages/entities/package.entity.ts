@@ -4,6 +4,7 @@ import {
   Entity,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
@@ -52,5 +53,5 @@ export class Package {
   @OneToMany(() => PackageTier, (tier) => tier.package, {
     cascade: true,
   })
-  tiers: PackageTier[];
+  tiers: Relation<PackageTier[]>;
 }

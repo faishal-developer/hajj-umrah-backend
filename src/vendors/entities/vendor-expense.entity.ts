@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
 } from 'typeorm';
 import { Vendor } from './vendor.entity.js';
@@ -23,14 +24,14 @@ export class VendorExpense {
 
   @ManyToOne(() => Vendor, (vendor) => vendor.expenses, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'vendor_id' })
-  vendor: Vendor;
+  vendor: Relation<Vendor>;
 
   @Column({ name: 'package_id', type: 'uuid', nullable: true })
   packageId: string | null;
 
   @ManyToOne(() => Package, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'package_id' })
-  package: Package | null;
+  package: Relation<Package> | null;
 
   @Column({ type: 'varchar', length: 255 })
   description: string;

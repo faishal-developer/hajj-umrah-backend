@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { InventoryItem } from './inventory-item.entity.js';
 import { InventoryTransactionType } from '../enums/inventory-transaction-type.enum.js';
@@ -22,7 +23,7 @@ export class InventoryTransaction {
 
   @ManyToOne(() => InventoryItem, (item) => item.transactions, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'item_id' })
-  item: InventoryItem;
+  item: Relation<InventoryItem>;
 
   @Column({
     type: 'enum',

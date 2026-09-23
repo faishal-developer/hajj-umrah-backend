@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -56,7 +55,7 @@ export class BookingsService {
       // 2. Load tier and parent package
       const tier = await manager.findOne(PackageTier, {
         where: { id: dto.tier_id },
-        relations: ['package'],
+        relations: { package: true },
       });
 
       if (!tier) {
@@ -148,7 +147,7 @@ export class BookingsService {
   async findForUser(userId: string): Promise<Booking[]> {
     return this.bookingsRepository.find({
       where: { userId },
-      relations: ['pilgrims', 'seatReservations'],
+      relations: { pilgrims: true, seatReservations: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -158,7 +157,7 @@ export class BookingsService {
    */
   async findAll(): Promise<Booking[]> {
     return this.bookingsRepository.find({
-      relations: ['pilgrims', 'seatReservations'],
+      relations: { pilgrims: true, seatReservations: true },
       order: { createdAt: 'DESC' },
     });
   }
@@ -169,7 +168,7 @@ export class BookingsService {
   async findById(id: string): Promise<Booking> {
     const booking = await this.bookingsRepository.findOne({
       where: { id },
-      relations: ['pilgrims', 'seatReservations'],
+      relations: { pilgrims: true, seatReservations: true },
     });
 
     if (!booking) {
@@ -197,7 +196,7 @@ export class BookingsService {
   async cancelBooking(
     id: string,
     currentUser: User,
-    reason?: string,
+    _reason?: string,
   ): Promise<Booking> {
     const booking = await this.findByIdAndValidateOwnership(id, currentUser);
 

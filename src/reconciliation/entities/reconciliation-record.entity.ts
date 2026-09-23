@@ -6,6 +6,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
 } from 'typeorm';
 import { Payment } from '../../payments/entities/payment.entity.js';
@@ -22,7 +23,7 @@ export class ReconciliationRecord {
 
   @ManyToOne(() => Payment, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'payment_id' })
-  payment: Payment | null;
+  payment: Relation<Payment> | null;
 
   @Column({ type: 'varchar', length: 50 })
   provider: string;

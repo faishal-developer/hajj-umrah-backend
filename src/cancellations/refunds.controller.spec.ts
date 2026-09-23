@@ -11,7 +11,6 @@ import { RefundStatus } from './enums/refund-status.enum.js';
 
 describe('RefundsController', () => {
   let controller: RefundsController;
-  let service: CancellationsService;
 
   const mockUser: User = {
     id: 'user-123',
@@ -60,7 +59,6 @@ describe('RefundsController', () => {
       .compile();
 
     controller = module.get<RefundsController>(RefundsController);
-    service = module.get<CancellationsService>(CancellationsService);
   });
 
   it('processRefund should invoke service.processRefund', async () => {

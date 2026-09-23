@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Booking } from './booking.entity.js';
 
@@ -19,7 +20,7 @@ export class BookingPilgrim {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
+  booking: Relation<Booking>;
 
   @Column({ name: 'full_name', type: 'varchar', length: 150 })
   fullName: string;

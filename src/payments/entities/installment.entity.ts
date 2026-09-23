@@ -4,6 +4,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity.js';
 import { InstallmentStatus } from '../enums/installment-status.enum.js';
@@ -16,11 +17,11 @@ export class Installment {
   @Column({ name: 'booking_id', type: 'uuid' })
   bookingId: string;
 
-  @ManyToOne(() => Booking, (booking) => booking.installments, {
+  @ManyToOne(() => Booking, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
+  booking: Relation<Booking>;
 
   @Column({ type: 'integer' })
   sequence: number;

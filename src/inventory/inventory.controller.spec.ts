@@ -11,7 +11,6 @@ import { InventoryTransactionType } from './enums/inventory-transaction-type.enu
 
 describe('InventoryController', () => {
   let controller: InventoryController;
-  let service: InventoryService;
 
   const mockAdmin: User = {
     id: 'admin-123',
@@ -50,7 +49,6 @@ describe('InventoryController', () => {
       .compile();
 
     controller = module.get<InventoryController>(InventoryController);
-    service = module.get<InventoryService>(InventoryService);
   });
 
   it('createItem should invoke service.createItem', async () => {

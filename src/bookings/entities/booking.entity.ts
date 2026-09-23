@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  type Relation,
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
@@ -26,7 +27,7 @@ export class Booking {
 
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: Relation<User>;
 
   @Column({ name: 'package_id', type: 'uuid' })
   packageId: string;
@@ -75,10 +76,10 @@ export class Booking {
   @OneToMany(() => BookingPilgrim, (pilgrim) => pilgrim.booking, {
     cascade: true,
   })
-  pilgrims: BookingPilgrim[];
+  pilgrims: Relation<BookingPilgrim[]>;
 
   @OneToMany(() => SeatReservation, (seat) => seat.booking, {
     cascade: true,
   })
-  seatReservations: SeatReservation[];
+  seatReservations: Relation<SeatReservation[]>;
 }

@@ -5,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  type Relation,
 } from 'typeorm';
 import { Booking } from '../../bookings/entities/booking.entity.js';
 import { RefundStatus } from '../enums/refund-status.enum.js';
@@ -19,7 +20,7 @@ export class Refund {
 
   @ManyToOne(() => Booking, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'booking_id' })
-  booking: Booking;
+  booking: Relation<Booking>;
 
   @Column({ type: 'integer' })
   amount: number;

@@ -11,7 +11,6 @@ import { ReconciliationStatus } from './enums/reconciliation-status.enum.js';
 
 describe('ReconciliationController', () => {
   let controller: ReconciliationController;
-  let service: ReconciliationService;
 
   const mockAdmin: User = {
     id: 'admin-123',
@@ -50,7 +49,6 @@ describe('ReconciliationController', () => {
       .compile();
 
     controller = module.get<ReconciliationController>(ReconciliationController);
-    service = module.get<ReconciliationService>(ReconciliationService);
   });
 
   it('reconcileBatch should invoke service.reconcileBatch', async () => {
