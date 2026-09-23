@@ -153,6 +153,7 @@ describe('PaymentsService', () => {
 
     mockSeatReservationService = {
       confirmSeats: vi.fn().mockResolvedValue({}),
+      releaseSeats: vi.fn().mockResolvedValue({}),
     };
 
     mockDataSource = {
@@ -267,6 +268,24 @@ describe('PaymentsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw BadRequestException if booking is EXPIRED or overdue', async () => {
+      mockBookingsService.findByIdAndValidateOwnership.mockResolvedValue({
+        ...mockBookingA,
+        status: BookingStatus.EXPIRED,
+      });
+
+      await expect(
+        service.initiateGatewayPayment(
+          {
+            booking_id: 'booking-a-id',
+            amount: 50000,
+            provider: 'BKASH',
+          },
+          mockUserA,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should throw BadRequestException if payment amount exceeds remaining balance', async () => {
       mockPaymentsRepository.find.mockResolvedValue([
         { amount: 80000, status: PaymentStatus.SUCCESS },
@@ -363,6 +382,53 @@ describe('PaymentsService', () => {
           status: PaymentStatus.PENDING,
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should not confirm booking if webhook arrives after booking has expired, and flag for review', async () => {
+      const expiredBooking: Booking = {
+        ...mockBookingA,
+        status: BookingStatus.EXPIRED,
+      };
+
+      const pendingPayment: Payment = {
+        id: 'pay-pending-late',
+        bookingId: 'booking-a-id',
+        provider: 'BKASH',
+        method: 'WALLET',
+        amount: 100000,
+        currency: 'BDT',
+        gatewayTransactionId: null,
+        status: PaymentStatus.PENDING,
+        createdBy: 'user-a-id',
+        approvedBy: null,
+        createdAt: new Date(),
+        booking: expiredBooking,
+        allocations: [],
+      };
+
+      mockGatewayEventsRepository.findOne.mockResolvedValue(null);
+      mockPaymentsRepository.findOne.mockImplementation(({ where }: any) => {
+        if (where.id) return Promise.resolve({ ...pendingPayment });
+        return Promise.resolve(null);
+      });
+      mockBookingsRepository.findOne.mockResolvedValue({ ...expiredBooking });
+
+      const result = await service.processGatewayWebhook('BKASH', {
+        event_id: 'EVT-LATE-1',
+        transaction_id: 'TRX_LATE_999',
+        payment_id: 'pay-pending-late',
+        amount: 100000,
+        status: PaymentStatus.SUCCESS,
+      });
+
+      expect(result.payment?.status).toBe(PaymentStatus.SUCCESS);
+      expect(result.message).toContain('recorded for review and refund handling');
+      expect(mockSeatReservationService.confirmSeats).not.toHaveBeenCalled();
+      expect(mockAuditLogsRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'PAYMENT_RECEIVED_AFTER_EXPIRATION',
+        }),
+      );
     });
   });
 

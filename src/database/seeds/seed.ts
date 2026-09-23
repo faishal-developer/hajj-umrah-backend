@@ -13,6 +13,16 @@ async function seed() {
   await AppDataSource.initialize();
   console.log('Database connected successfully.');
 
+  // Ensure DB enum has all roles and return_date column exists
+  await AppDataSource.query(`
+    DO $$ BEGIN
+      ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'SUPER_ADMIN';
+      ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'AGENT';
+    EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+    ALTER TABLE packages ADD COLUMN IF NOT EXISTS return_date DATE;
+  `);
+
   const userRepo = AppDataSource.getRepository(User);
   const packageRepo = AppDataSource.getRepository(Package);
   const tierRepo = AppDataSource.getRepository(PackageTier);
@@ -23,11 +33,27 @@ async function seed() {
 
   const usersData = [
     {
+      name: 'Super Administrator',
+      email: 'superadmin@hajjumrah.com',
+      phone: '+8801700000000',
+      password: 'SuperAdminPassword123!',
+      role: UserRole.SUPER_ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+    {
       name: 'System Administrator',
       email: 'admin@hajjumrah.com',
       phone: '+8801700000001',
       password: 'AdminPassword123!',
       role: UserRole.ADMIN,
+      status: UserStatus.ACTIVE,
+    },
+    {
+      name: 'Al-Haramain Travel Agency',
+      email: 'agent@hajjumrah.com',
+      phone: '+8801700000002',
+      password: 'AgentPassword123!',
+      role: UserRole.AGENT,
       status: UserStatus.ACTIVE,
     },
     {
@@ -84,6 +110,7 @@ async function seed() {
       description:
         'All-inclusive 25-day VIP Hajj package with premium air-conditioned Mina & Arafat VIP tents near Jamarat, Swissôtel Makkah & The Oberoi Madinah stays, luxury bullet train transfers, full board gourmet meals, Qurbani included, and 24/7 dedicated Islamic scholar guidance.',
       departureDate: '2026-05-20',
+      returnDate: '2026-06-14',
       bookingStartDate: '2026-01-15',
       bookingEndDate: '2026-05-01',
       status: PackageStatus.PUBLISHED,
@@ -111,6 +138,7 @@ async function seed() {
       description:
         'Affordable, complete 35-day standard Hajj package with comprehensive logistics, experienced group leader (Moallim), standard hotel accommodations near shuttle points, all meals, and medical support team.',
       departureDate: '2026-05-18',
+      returnDate: '2026-06-22',
       bookingStartDate: '2026-01-15',
       bookingEndDate: '2026-04-30',
       status: PackageStatus.PUBLISHED,
@@ -138,6 +166,7 @@ async function seed() {
       description:
         '15-day spiritual journey during the blessed last days of Ramadan including Laylatul Qadr and Eid in Makkah. Features 5-star hotel accommodations steps away from Haram in Makkah and Madinah, direct flights, VIP private transport, and guided Ziyarah tours.',
       departureDate: '2026-03-10',
+      returnDate: '2026-03-25',
       bookingStartDate: '2026-01-01',
       bookingEndDate: '2026-03-01',
       status: PackageStatus.PUBLISHED,
@@ -165,6 +194,7 @@ async function seed() {
       description:
         'Compact 10-day Umrah package designed for professionals and families with tight schedules. Features 5 days in Makkah and 4 days in Madinah with buffet breakfast, luxury airport transfers, and guided tours of historical Islamic sites.',
       departureDate: '2026-10-15',
+      returnDate: '2026-10-25',
       bookingStartDate: '2026-06-01',
       bookingEndDate: '2026-10-01',
       status: PackageStatus.PUBLISHED,
@@ -187,6 +217,7 @@ async function seed() {
       description:
         'Special December holiday 14-day Umrah package for families. Includes kid-friendly excursions, interactive seminar sessions on Umrah rites, Pullman Zamzam Makkah accommodation, and Haramain High-Speed Railway travel.',
       departureDate: '2026-12-18',
+      returnDate: '2026-12-31',
       bookingStartDate: '2026-08-01',
       bookingEndDate: '2026-12-05',
       status: PackageStatus.PUBLISHED,
@@ -217,6 +248,7 @@ async function seed() {
         type: pkgData.type,
         description: pkgData.description,
         departureDate: pkgData.departureDate,
+        returnDate: pkgData.returnDate,
         bookingStartDate: pkgData.bookingStartDate,
         bookingEndDate: pkgData.bookingEndDate,
         status: pkgData.status,
@@ -228,6 +260,7 @@ async function seed() {
       pkg.type = pkgData.type;
       pkg.description = pkgData.description;
       pkg.departureDate = pkgData.departureDate;
+      pkg.returnDate = pkgData.returnDate;
       pkg.bookingStartDate = pkgData.bookingStartDate;
       pkg.bookingEndDate = pkgData.bookingEndDate;
       pkg.status = pkgData.status;

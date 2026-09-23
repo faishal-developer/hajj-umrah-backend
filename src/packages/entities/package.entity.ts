@@ -28,6 +28,9 @@ export class Package {
   @Column({ name: 'departure_date', type: 'date' })
   departureDate: string;
 
+  @Column({ name: 'return_date', type: 'date', nullable: true })
+  returnDate: string | null;
+
   @Column({ name: 'booking_start_date', type: 'date' })
   bookingStartDate: string;
 

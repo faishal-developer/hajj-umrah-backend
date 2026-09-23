@@ -71,6 +71,18 @@ export class PaymentsService {
       );
     }
 
+    if (
+      (booking.status === BookingStatus.HELD ||
+        booking.status === BookingStatus.PENDING_PAYMENT) &&
+      booking.expiresAt &&
+      booking.expiresAt <= new Date()
+    ) {
+      await this.bookingsService.expireBookingAtomically(booking.id);
+      throw new BadRequestException(
+        'Booking reservation window has expired. Held seats have been released.',
+      );
+    }
+
     // Calculate remaining balance
     const existingPayments = await this.paymentsRepository.find({
       where: { bookingId: booking.id, status: PaymentStatus.SUCCESS },
@@ -113,7 +125,14 @@ export class PaymentsService {
     dto: GatewayWebhookDto,
   ): Promise<{ message: string; payment: Payment | null; duplicate: boolean }> {
     const normalizedProvider = provider.toUpperCase();
-    const eventId = dto.event_id || `${normalizedProvider}_${dto.transaction_id}_${dto.status}`;
+    const transactionId = (dto.transaction_id || dto.transactionId)!;
+    const eventId =
+      dto.event_id ||
+      dto.eventId ||
+      `${normalizedProvider}_${transactionId}_${dto.status}`;
+    const paymentId = dto.payment_id || dto.paymentId;
+    const bookingId = dto.booking_id || dto.bookingId;
+    const eventType = dto.event_type || dto.eventType;
 
     // 1. Check for duplicate event by (provider, eventId)
     const existingEvent = await this.gatewayEventsRepository.findOne({
@@ -124,9 +143,17 @@ export class PaymentsService {
     });
 
     if (existingEvent && existingEvent.status === GatewayEventStatus.PROCESSED) {
-      const existingPayment = await this.paymentsRepository.findOne({
-        where: { id: dto.payment_id },
-      });
+      let existingPayment: Payment | null = null;
+      if (paymentId) {
+        existingPayment = await this.paymentsRepository.findOne({
+          where: { id: paymentId },
+        });
+      } else if (bookingId) {
+        existingPayment = await this.paymentsRepository.findOne({
+          where: { bookingId },
+          order: { createdAt: 'DESC' },
+        });
+      }
       return {
         message: 'Event already processed successfully',
         payment: existingPayment,
@@ -134,15 +161,57 @@ export class PaymentsService {
       };
     }
 
-    // 2. Find the target payment record
-    const targetPayment = await this.paymentsRepository.findOne({
-      where: { id: dto.payment_id },
-      relations: { booking: true },
-    });
+    // 2. Find the target payment record by paymentId or bookingId
+    let targetPayment: Payment | null = null;
+    if (paymentId) {
+      targetPayment = await this.paymentsRepository.findOne({
+        where: { id: paymentId },
+        relations: { booking: true },
+      });
+    } else if (bookingId) {
+      // Find latest pending payment for this booking
+      targetPayment = await this.paymentsRepository.findOne({
+        where: { bookingId, status: PaymentStatus.PENDING },
+        order: { createdAt: 'DESC' },
+        relations: { booking: true },
+      });
+
+      // If no pending payment found, look for any payment or create one for this booking
+      if (!targetPayment) {
+        targetPayment = await this.paymentsRepository.findOne({
+          where: { bookingId },
+          order: { createdAt: 'DESC' },
+          relations: { booking: true },
+        });
+
+        if (!targetPayment) {
+          const booking = await this.bookingsRepository.findOne({
+            where: { id: bookingId },
+          });
+          if (!booking) {
+            throw new NotFoundException(
+              `Booking with ID "${bookingId}" not found`,
+            );
+          }
+          const newPayment = this.paymentsRepository.create({
+            bookingId: booking.id,
+            provider: normalizedProvider,
+            method: 'ONLINE',
+            amount: dto.amount,
+            currency: dto.currency || 'BDT',
+            status: PaymentStatus.PENDING,
+            gatewayTransactionId: transactionId,
+            createdBy: booking.userId,
+          });
+          targetPayment = await this.paymentsRepository.save(newPayment);
+          targetPayment.booking = booking;
+        }
+      }
+    }
 
     if (!targetPayment) {
       throw new NotFoundException(
-        `Payment record with ID "${dto.payment_id}" not found`,
+        `Payment record not found for the provided payment_id / booking_id`,
       );
     }
 
@@ -154,8 +223,8 @@ export class PaymentsService {
       const ignoredEvent = this.gatewayEventsRepository.create({
         provider: normalizedProvider,
         eventId,
-        transactionId: dto.transaction_id,
-        eventType: dto.event_type || 'payment.invalid_transition',
+        transactionId,
+        eventType: eventType || 'payment.invalid_transition',
         payload: dto.metadata || (dto as any),
         status: GatewayEventStatus.IGNORED,
       });
@@ -178,14 +247,14 @@ export class PaymentsService {
     // 4. Handle FAILED status
     if (dto.status === PaymentStatus.FAILED) {
       targetPayment.status = PaymentStatus.FAILED;
-      targetPayment.gatewayTransactionId = dto.transaction_id;
+      targetPayment.gatewayTransactionId = transactionId;
       const failedPayment = await this.paymentsRepository.save(targetPayment);
 
       const gatewayEvent = this.gatewayEventsRepository.create({
         provider: normalizedProvider,
         eventId,
-        transactionId: dto.transaction_id,
-        eventType: dto.event_type || 'payment.failed',
+        transactionId,
+        eventType: eventType || 'payment.failed',
         payload: dto.metadata || (dto as any),
         status: GatewayEventStatus.PROCESSED,
       });
@@ -222,15 +291,15 @@ export class PaymentsService {
       }
 
       lockedPayment.status = PaymentStatus.SUCCESS;
-      lockedPayment.gatewayTransactionId = dto.transaction_id;
+      lockedPayment.gatewayTransactionId = transactionId;
       const savedPayment = await paymentRepo.save(lockedPayment);
 
       // Record event log in the same transaction
       const gatewayEvent = eventRepo.create({
         provider: normalizedProvider,
         eventId,
-        transactionId: dto.transaction_id,
-        eventType: dto.event_type || 'payment.succeeded',
+        transactionId,
+        eventType: eventType || 'payment.succeeded',
         payload: dto.metadata || (dto as any),
         status: GatewayEventStatus.PROCESSED,
       });
@@ -240,23 +309,70 @@ export class PaymentsService {
         where: { id: savedPayment.bookingId },
       });
 
-      if (booking && booking.status !== BookingStatus.CANCELLED) {
-        if (booking.paymentMode === PaymentMode.INSTALLMENT) {
-          await this.installmentsService.allocatePayment(
-            booking.id,
-            savedPayment.id,
-            savedPayment.amount,
-            manager,
-          );
-        } else {
-          booking.status = BookingStatus.CONFIRMED;
-          await bookingRepo.save(booking);
+      if (booking) {
+        const isExpired =
+          booking.status === BookingStatus.EXPIRED ||
+          ((booking.status === BookingStatus.HELD ||
+            booking.status === BookingStatus.PENDING_PAYMENT) &&
+            booking.expiresAt &&
+            booking.expiresAt <= new Date());
+
+        if (isExpired) {
+          if (booking.status !== BookingStatus.EXPIRED) {
+            booking.status = BookingStatus.EXPIRED;
+            await bookingRepo.save(booking);
+            try {
+              await this.seatReservationService.releaseSeats(booking.id, manager);
+            } catch {
+              // Ignore if already released
+            }
+          }
+
+          const auditLog = this.auditLogsRepository.create({
+            actorId: booking.userId,
+            entityType: 'Payment',
+            entityId: savedPayment.id,
+            action: 'PAYMENT_RECEIVED_AFTER_EXPIRATION',
+            oldValue: {
+              status: PaymentStatus.PENDING,
+              bookingStatus: booking.status,
+            },
+            newValue: {
+              status: PaymentStatus.SUCCESS,
+              bookingStatus: BookingStatus.EXPIRED,
+              requiresReview: true,
+              reason:
+                'Payment arrived after booking reservation expired. Flagged for review/refund.',
+            },
+          });
+          await manager.save(AuditLog, auditLog);
+
+          return {
+            message:
+              'Payment received after booking expired; recorded for review and refund handling',
+            payment: savedPayment,
+            duplicate: false,
+          };
         }
 
-        try {
-          await this.seatReservationService.confirmSeats(booking.id, manager);
-        } catch {
-          // Continue safely
+        if (booking.status !== BookingStatus.CANCELLED) {
+          if (booking.paymentMode === PaymentMode.INSTALLMENT) {
+            await this.installmentsService.allocatePayment(
+              booking.id,
+              savedPayment.id,
+              savedPayment.amount,
+              manager,
+            );
+          } else {
+            booking.status = BookingStatus.CONFIRMED;
+            await bookingRepo.save(booking);
+          }
+
+          try {
+            await this.seatReservationService.confirmSeats(booking.id, manager);
+          } catch {
+            // Continue safely
+          }
         }
       }
 

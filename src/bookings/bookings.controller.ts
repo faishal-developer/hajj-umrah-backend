@@ -169,4 +169,24 @@ export class BookingsController {
       currentUser,
     );
   }
+
+  /**
+   * POST /bookings/expire-overdue
+   * Manually sweeps and expires overdue bookings, releasing held seats.
+   */
+  @Post('expire-overdue')
+  @ApiOperation({
+    summary: 'Sweep and expire overdue bookings',
+    description:
+      'Checks all HELD/PENDING_PAYMENT bookings whose expires_at has elapsed, marks them EXPIRED, and releases held seats back to the quota atomically.',
+  })
+  @ApiResponse({ status: 200, description: 'Number of expired bookings returned.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized access.' })
+  async expireOverdue() {
+    const expiredCount = await this.bookingsService.expireAllOverdueBookings();
+    return {
+      message: `Successfully swept overdue bookings`,
+      expiredCount,
+    };
+  }
 }

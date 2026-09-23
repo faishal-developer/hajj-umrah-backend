@@ -6,6 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { SeatReservation } from '../bookings/entities/seat-reservation.entity.js';
+import { Booking } from '../bookings/entities/booking.entity.js';
+import { BookingStatus } from '../bookings/enums/booking-status.enum.js';
 import { ReservationStatus } from '../bookings/enums/reservation-status.enum.js';
 import { PackageTier } from '../packages/entities/package-tier.entity.js';
 
@@ -174,7 +176,8 @@ export class SeatReservationService {
   }
 
   /**
-   * Finds all expired reservations with status HELD and releases held seats back to the quota.
+   * Finds all expired reservations with status HELD and releases held seats back to the quota,
+   * while atomically marking the parent booking as EXPIRED.
    */
   async releaseExpiredReservations(): Promise<number> {
     const now = new Date();
@@ -187,7 +190,24 @@ export class SeatReservationService {
     let releasedCount = 0;
     for (const reservation of expiredReservations) {
       try {
-        await this.releaseSeats(reservation.bookingId);
+        await this.dataSource.transaction(async (manager: EntityManager) => {
+          const bookingRepo = manager.getRepository(Booking);
+          const booking = await bookingRepo.findOne({
+            where: { id: reservation.bookingId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (
+            booking &&
+            (booking.status === BookingStatus.HELD ||
+              booking.status === BookingStatus.PENDING_PAYMENT)
+          ) {
+            booking.status = BookingStatus.EXPIRED;
+            await bookingRepo.save(booking);
+          }
+
+          await this.releaseSeats(reservation.bookingId, manager);
+        });
         releasedCount++;
       } catch {
         // Continue releasing others

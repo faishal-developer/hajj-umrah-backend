@@ -47,6 +47,22 @@ export class UpdatePackageDto {
   departure_date?: string;
 
   @ApiPropertyOptional({
+    description: 'Updated return date (YYYY-MM-DD)',
+    example: '2026-06-30',
+  })
+  @IsOptional()
+  @IsDateString()
+  return_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated return date (camelCase alias: YYYY-MM-DD)',
+    example: '2026-06-30',
+  })
+  @IsOptional()
+  @IsDateString()
+  returnDate?: string;
+
+  @ApiPropertyOptional({
     description: 'Updated booking start date (YYYY-MM-DD)',
     example: '2026-01-05',
   })

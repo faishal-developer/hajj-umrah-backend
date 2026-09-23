@@ -44,6 +44,22 @@ export class CreatePackageDto {
   @IsDateString()
   departure_date: string;
 
+  @ApiPropertyOptional({
+    description: 'Scheduled return date (YYYY-MM-DD)',
+    example: '2026-06-25',
+  })
+  @IsOptional()
+  @IsDateString()
+  return_date?: string;
+
+  @ApiPropertyOptional({
+    description: 'Scheduled return date (camelCase alias: YYYY-MM-DD)',
+    example: '2026-06-25',
+  })
+  @IsOptional()
+  @IsDateString()
+  returnDate?: string;
+
   @ApiProperty({
     description: 'Booking opening date (YYYY-MM-DD)',
     example: '2026-01-01',

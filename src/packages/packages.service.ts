@@ -20,13 +20,18 @@ export class PackagesService {
 
   /**
    * Retrieves list of published packages visible to public users / pilgrims.
+   * Backdated packages whose booking closing date or departure date has passed are excluded.
    */
   async findPublished(query: QueryPackageDto = {}): Promise<Package[]> {
     const { page = 1, limit = 20, type } = query;
+    const today = new Date().toISOString().split('T')[0];
+
     const qb = this.packagesRepository
       .createQueryBuilder('package')
       .leftJoinAndSelect('package.tiers', 'tiers')
-      .where('package.status = :status', { status: PackageStatus.PUBLISHED });
+      .where('package.status = :status', { status: PackageStatus.PUBLISHED })
+      .andWhere('package.bookingEndDate >= :today', { today })
+      .andWhere('package.departureDate >= :today', { today });
 
     if (type) {
       qb.andWhere('package.type = :type', { type });
@@ -72,8 +77,16 @@ export class PackagesService {
       throw new NotFoundException(`Package with ID "${id}" not found`);
     }
 
-    if (publishedOnly && pkg.status !== PackageStatus.PUBLISHED) {
-      throw new NotFoundException(`Package with ID "${id}" not found`);
+    if (publishedOnly) {
+      if (pkg.status !== PackageStatus.PUBLISHED) {
+        throw new NotFoundException(`Package with ID "${id}" not found`);
+      }
+      const today = new Date().toISOString().split('T')[0];
+      if (pkg.bookingEndDate < today || pkg.departureDate < today) {
+        throw new NotFoundException(
+          `Package with ID "${id}" is no longer available for booking`,
+        );
+      }
     }
 
     return pkg;
@@ -83,11 +96,13 @@ export class PackagesService {
    * Creates a new package in DRAFT status.
    */
   async create(dto: CreatePackageDto): Promise<Package> {
+    const returnDate = dto.return_date || dto.returnDate || null;
     const pkg = this.packagesRepository.create({
       name: dto.name,
       type: dto.type,
       description: dto.description || null,
       departureDate: dto.departure_date,
+      returnDate,
       bookingStartDate: dto.booking_start_date,
       bookingEndDate: dto.booking_end_date,
       status: PackageStatus.DRAFT,
@@ -114,6 +129,8 @@ export class PackagesService {
     if (dto.type !== undefined) pkg.type = dto.type;
     if (dto.description !== undefined) pkg.description = dto.description;
     if (dto.departure_date !== undefined) pkg.departureDate = dto.departure_date;
+    const returnDate = dto.return_date || dto.returnDate;
+    if (returnDate !== undefined) pkg.returnDate = returnDate;
     if (dto.booking_start_date !== undefined) pkg.bookingStartDate = dto.booking_start_date;
     if (dto.booking_end_date !== undefined) pkg.bookingEndDate = dto.booking_end_date;
 

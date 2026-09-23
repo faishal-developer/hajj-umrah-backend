@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { BookingsService } from './bookings.service.js';
 import { Booking } from './entities/booking.entity.js';
 import { BookingPilgrim } from './entities/booking-pilgrim.entity.js';
 import { BookingStatus } from './enums/booking-status.enum.js';
 import { PaymentMode } from './enums/payment-mode.enum.js';
+import { ReservationStatus } from './enums/reservation-status.enum.js';
 import { User } from '../users/entities/user.entity.js';
 import { UserRole } from '../users/enums/user-role.enum.js';
 import { UserStatus } from '../users/enums/user-status.enum.js';
@@ -25,6 +26,7 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
   let mockIdempotencyService: any;
   let mockDataSource: any;
   let mockEntityManager: any;
+  let mockQueryBuilder: any;
 
   const mockUserA: User = {
     id: 'user-a-id',
@@ -52,6 +54,10 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       id: 'package-1-id',
       name: 'Ramadan Umrah 2027',
       status: PackageStatus.PUBLISHED,
+      departureDate: '2027-03-15',
+      returnDate: '2027-03-29',
+      bookingStartDate: '2026-10-01',
+      bookingEndDate: '2027-02-15',
     } as any,
   };
 
@@ -126,11 +132,24 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       generateSchedule: vi.fn().mockResolvedValue([]),
     };
 
+    mockQueryBuilder = {
+      innerJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      getRawMany: vi.fn().mockResolvedValue([]),
+      getMany: vi.fn().mockResolvedValue([]),
+    };
+
     mockEntityManager = {
       findOne: vi.fn(),
+      find: vi.fn().mockResolvedValue([]),
       create: vi.fn().mockImplementation((_entityClass, dto) => ({ ...dto, id: 'saved-id' })),
       save: vi.fn().mockImplementation(async (_entityClass, entity) => entity),
+      createQueryBuilder: vi.fn().mockReturnValue(mockQueryBuilder),
     };
+
+    mockBookingsRepository.createQueryBuilder = vi.fn().mockReturnValue(mockQueryBuilder);
 
     mockDataSource = {
       transaction: vi.fn().mockImplementation(async (cb) => cb(mockEntityManager)),
@@ -246,6 +265,61 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       expect(mockDataSource.transaction).not.toHaveBeenCalled();
     });
 
+    it('should reject booking if duplicate passport numbers are passed in same request', async () => {
+      const createDto = {
+        tier_id: 'tier-vip-id',
+        payment_mode: PaymentMode.FULL,
+        pilgrims: [
+          { name: 'Faishal', passport_number: 'A12345678' },
+          { name: 'Faishal Copy', passport_number: 'A12345678' },
+        ],
+      };
+
+      await expect(
+        service.createBooking('user-a-id', createDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject booking with ConflictException if passport overlaps with active booking travel dates', async () => {
+      mockEntityManager.findOne.mockResolvedValue({ ...mockTier });
+      mockQueryBuilder.getRawMany.mockResolvedValueOnce([
+        {
+          passport_number: 'A12345678',
+          booking_id: 'active-booking-99',
+          booking_status: BookingStatus.CONFIRMED,
+          package_name: 'Overlapping Hajj',
+          departure_date: '2027-03-10',
+          return_date: '2027-03-30',
+        },
+      ]);
+
+      const createDto = {
+        tier_id: 'tier-vip-id',
+        payment_mode: PaymentMode.FULL,
+        pilgrims: [{ name: 'Faishal', passport_number: 'A12345678' }],
+      };
+
+      await expect(
+        service.createBooking('user-a-id', createDto),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should allow booking if existing booking with same passport is CANCELLED or EXPIRED', async () => {
+      mockEntityManager.findOne.mockResolvedValue({ ...mockTier });
+      // Query builder filters out CANCELLED/EXPIRED, so getRawMany returns []
+      mockQueryBuilder.getRawMany.mockResolvedValueOnce([]);
+
+      const createDto = {
+        tier_id: 'tier-vip-id',
+        payment_mode: PaymentMode.FULL,
+        pilgrims: [{ name: 'Faishal', passport_number: 'A12345678' }],
+      };
+
+      const result = await service.createBooking('user-a-id', createDto);
+      expect(result).toBeDefined();
+      expect(result.status).toBe(BookingStatus.HELD);
+    });
+
     it('should reject booking if package is not published', async () => {
       mockEntityManager.findOne.mockResolvedValue({
         ...mockTier,
@@ -261,6 +335,58 @@ describe('BookingsService (B06 — Group Booking, Snapshotting, Idempotency)', (
       await expect(
         service.createBooking('user-a-id', createDto),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('expireBookingAtomically & expireAllOverdueBookings', () => {
+    it('should atomically expire booking and release held seats back to tier quota', async () => {
+      const overdueHeldBooking: Booking = {
+        ...mockBookingA,
+        status: BookingStatus.HELD,
+        expiresAt: new Date(Date.now() - 60000), // 1 min ago
+      };
+
+      const mockSeatReservation = {
+        id: 'res-1',
+        tierId: 'tier-vip-id',
+        quantity: 2,
+        status: ReservationStatus.HELD,
+      };
+
+      const lockedTier = {
+        id: 'tier-vip-id',
+        heldSeats: 2,
+        confirmedSeats: 0,
+      };
+
+      mockEntityManager.findOne.mockImplementation((entityClass: any) => {
+        if (entityClass === Booking) return Promise.resolve(overdueHeldBooking);
+        if (entityClass === PackageTier) return Promise.resolve(lockedTier);
+        return Promise.resolve(null);
+      });
+      mockEntityManager.find.mockResolvedValue([mockSeatReservation]);
+
+      const result = await service.expireBookingAtomically('booking-a-id');
+
+      expect(result.expired).toBe(true);
+      expect(overdueHeldBooking.status).toBe(BookingStatus.EXPIRED);
+      expect(lockedTier.heldSeats).toBe(0); // released 2 seats back
+      expect(mockSeatReservation.status).toBe(ReservationStatus.RELEASED);
+    });
+
+    it('should not expire already CONFIRMED booking', async () => {
+      const confirmedBooking: Booking = {
+        ...mockBookingA,
+        status: BookingStatus.CONFIRMED,
+        expiresAt: new Date(Date.now() - 60000),
+      };
+
+      mockEntityManager.findOne.mockResolvedValue(confirmedBooking);
+
+      const result = await service.expireBookingAtomically('booking-a-id');
+
+      expect(result.expired).toBe(false);
+      expect(confirmedBooking.status).toBe(BookingStatus.CONFIRMED);
     });
   });
 

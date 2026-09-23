@@ -1,0 +1,38 @@
+﻿{
+    "current_step":  "BOOKING_CREATED",
+    "data":  {
+                 "bookingId":  "d2639294-74a8-4ea7-806a-0635515a3da4",
+                 "userId":  "f09f67f5-2720-4b15-a8c3-56e7da5a38d8",
+                 "packageId":  "ff9cec36-4876-4eda-b5d0-7ab43ed00119",
+                 "transactionId":  null,
+                 "paymentId":  null,
+                 "tierId":  "1ba2e466-1674-4988-a6f3-10ea73c9a157",
+                 "userEmail":  "e2e_client_63660@pilgrim.test",
+                 "userPassword":  "Password123!",
+                 "authToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmMDlmNjdmNS0yNzIwLTRiMTUtYThjMy01NmU3ZGE1YTM4ZDgiLCJlbWFpbCI6ImUyZV9jbGllbnRfNjM2NjBAcGlsZ3JpbS50ZXN0Iiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3OTAxNjc5MTQsImV4cCI6MTc5MDc3MjcxNH0.O6WA3zfhfmS-aLFy986r7-bpf0uhYJoyk69m3-tQhmY",
+                 "bookingTotal":  450000
+             },
+    "history":  [
+                    {
+                        "step":  "INIT",
+                        "agent":  "BACKEND",
+                        "timestamp":  "2026-09-23T12:30:00Z",
+                        "message":  "Initialized e2e sync log file. Backend Inspector is active and ready."
+                    },
+                    {
+                        "step":  "BOOKING_CREATED",
+                        "agent":  "CLIENT",
+                        "timestamp":  "2026-09-23T12:52:15.172Z",
+                        "message":  "Created booking #d2639294-74a8-4ea7-806a-0635515a3da4 for user f09f67f5-2720-4b15-a8c3-56e7da5a38d8"
+                    },
+                    {
+                        "step":  "ADMIN_VERIFIED_BOOKING",
+                        "timestamp":  "2026-09-23T13:30:06.084Z",
+                        "message":  "Admin verified booking #d2639294-74a8-4ea7-806a-0635515a3da4 in HELD/PENDING status for user f09f67f5-2720-4b15-a8c3-56e7da5a38d8 with total 450,000 BDT and 1 pilgrim (A24144329).",
+                        "agent":  "ADMIN"
+                    }
+                ],
+    "issues":  [
+
+               ]
+}

@@ -64,9 +64,23 @@ describe('PackagesService', () => {
   });
 
   describe('findPublished', () => {
-    it('should query packages with status = PUBLISHED', async () => {
+    it('should query packages with status = PUBLISHED and filter out backdated packages', async () => {
       const result = await service.findPublished({ page: 1, limit: 20 });
       expect(result).toEqual([mockPublishedPackage]);
+    });
+  });
+
+  describe('findById publishedOnly', () => {
+    it('should throw NotFoundException if package has past bookingEndDate or departureDate', async () => {
+      mockPackagesRepository.findOne.mockResolvedValue({
+        ...mockPublishedPackage,
+        bookingEndDate: '2020-01-01',
+        departureDate: '2020-02-01',
+      });
+
+      await expect(service.findById('pkg-id', true)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -88,6 +102,7 @@ describe('PackagesService', () => {
         type: dto.type,
         description: dto.description,
         departureDate: dto.departure_date,
+        returnDate: null,
         bookingStartDate: dto.booking_start_date,
         bookingEndDate: dto.booking_end_date,
         status: PackageStatus.DRAFT,

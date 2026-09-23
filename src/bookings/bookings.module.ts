@@ -11,6 +11,8 @@ import { SeatReservationModule } from '../seat-reservation/seat-reservation.modu
 import { IdempotencyService } from '../common/services/idempotency.service.js';
 import { InstallmentsModule } from '../installments/installments.module.js';
 
+import { BookingExpirationScheduler } from './jobs/booking-expiration.scheduler.js';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -24,7 +26,11 @@ import { InstallmentsModule } from '../installments/installments.module.js';
     forwardRef(() => InstallmentsModule),
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, IdempotencyService],
+  providers: [
+    BookingsService,
+    IdempotencyService,
+    BookingExpirationScheduler,
+  ],
   exports: [BookingsService, TypeOrmModule],
 })
 export class BookingsModule {}
